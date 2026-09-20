@@ -12,13 +12,16 @@
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
-    "googleapis": "^144.0.0",
+    "imapflow": "^2.0.5",
+    "mailparser": "^3.9.28",
     "next": "^15.0.0",
+    "nodemailer": "^7.0.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/nodemailer": "^7.0.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "prisma": "^6.0.0",
