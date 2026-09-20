@@ -12,11 +12,16 @@ function firstMatch(text: string, patterns: RegExp[]) {
     const match = text.match(pattern);
     if (match?.[1]) return match[1].trim();
   }
+
   return undefined;
 }
 
+function cleanValue(value: string | undefined) {
+  return value?.replace(/\s+/g, " ").trim() || undefined;
+}
+
 function parseDateTime(text: string) {
-  const match = text.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})[^\d]{1,8}(\d{1,2}):(\d{2})/);
+  const match = text.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})[^\d]{1,12}(\d{1,2}):(\d{2})/);
   if (!match) return undefined;
 
   const [, day, month, yearRaw, hour, minute] = match;
@@ -31,32 +36,41 @@ export function parseBookioEmail(subject: string, body: string): ParsedReservati
   const normalized = text.toLowerCase();
 
   let status: ParsedReservation["status"] = "unknown";
-  if (/zruš|zrus|cancel|storno/.test(normalized)) status = "cancelled";
-  else if (/změn|zmen|reschedule|přesun|presun/.test(normalized)) status = "changed";
-  else if (/nová rezervace|nova rezervace|new reservation|rezervace/.test(normalized)) status = "new";
+
+  if (/zruš|zrus|cancel|storno/.test(normalized)) {
+    status = "cancelled";
+  } else if (/změn|zmen|reschedule|přesun|presun/.test(normalized)) {
+    status = "changed";
+  } else if (/nová rezervace|nova rezervace|new reservation|rezervace/.test(normalized)) {
+    status = "new";
+  }
 
   return {
     status,
-    customerName: firstMatch(text, [
-      /(?:jméno|jmeno|name|zákazník|zakaznik)\s*[:\-]\s*([^\n]+)/i
-    ]),
+    customerName: cleanValue(firstMatch(text, [
+      /(?:jméno|jmeno|name|zákazník|zakaznik|customer)\s*[:\-]\s*([^\n]+)/i
+    ])),
     customerEmail: firstMatch(text, [
       /(?:e-?mail|email)\s*[:\-]\s*([\w.+-]+@[\w.-]+\.[A-Za-z]{2,})/i
     ]),
-    customerPhone: firstMatch(text, [
+    customerPhone: cleanValue(firstMatch(text, [
       /(?:telefon|tel\.?|phone)\s*[:\-]\s*([+\d][\d\s().-]{7,})/i
-    ]),
-    service: firstMatch(text, [
-      /(?:služba|sluzba|service|typ rezervace|typ rezervacie)\s*[:\-]\s*([^\n]+)/i
-    ]),
+    ])),
+    service: cleanValue(firstMatch(text, [
+      /(?:služba|sluzba|service|typ rezervace|typ rezervacie|appointment)\s*[:\-]\s*([^\n]+)/i
+    ])),
     dateTime: parseDateTime(text)
   };
 }
 
 export function isBookioEmail(sender: string | undefined, subject: string | undefined) {
-  const configuredSender = process.env.BOOKIO_SENDER_EMAIL?.toLowerCase();
-  const source = `${sender ?? ""} ${subject ?? ""}`.toLowerCase();
+  const configuredSender = process.env.BOOKIO_SENDER_EMAIL?.trim().toLowerCase();
+  const normalizedSender = sender?.toLowerCase() ?? "";
+  const normalizedSubject = subject?.toLowerCase() ?? "";
 
-  if (configuredSender && source.includes(configuredSender)) return true;
-  return /bookio|rezervac|reservation/.test(source);
+  if (configuredSender) {
+    return normalizedSender.includes(configuredSender);
+  }
+
+  return /bookio|rezervac|reservation/.test(`${normalizedSender} ${normalizedSubject}`);
 }
