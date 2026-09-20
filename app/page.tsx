@@ -26,21 +26,16 @@ function statusLabel(status: string) {
 
 export default async function Home() {
   try {
-    const [reports, reservations, reservationCount, connection] = await Promise.all([
+    const [reports, reservations, reservationCount] = await Promise.all([
       prisma.report.findMany({
         orderBy: { generatedAt: "desc" },
         take: 5
       }),
       prisma.reservation.findMany({
         orderBy: { createdAt: "desc" },
-        take: 10,
-        include: { email: true }
+        take: 10
       }),
-      prisma.reservation.count(),
-      prisma.appSetting.findUnique({
-        where: { key: "google_refresh_token" },
-        select: { key: true }
-      })
+      prisma.reservation.count()
     ]);
 
     return (
@@ -50,12 +45,13 @@ export default async function Home() {
             <p className="eyebrow">BOOKIO AGENT</p>
             <h1>Rezervace pod kontrolou.</h1>
             <p className="muted">
-              Gmail → Bookio notifikace → databáze → report každých 48 hodin.
+              Seznam → Bookio notifikace → databáze → report každých 48 hodin.
             </p>
           </div>
-          <a className="button" href="/api/auth/google">
-            {connection ? "Připojit Gmail znovu" : "Připojit Gmail"}
-          </a>
+          <div className="card">
+            <strong>Mailbox</strong>
+            <span className="muted">matej.cisteauto@seznam.cz</span>
+          </div>
         </header>
 
         <section className="stats">
@@ -64,8 +60,8 @@ export default async function Home() {
             <strong>{reservationCount}</strong>
           </div>
           <div className="card stat">
-            <span>Gmail</span>
-            <strong>{connection ? "Připojen" : "Nepřipojen"}</strong>
+            <span>Seznam</span>
+            <strong>IMAP</strong>
           </div>
           <div className="card stat">
             <span>Reporty</span>
