@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model EmailMessage {
+  id          String   @id
+  threadId    String?
+  receivedAt  DateTime
+  sender      String?
+  subject     String?
+  snippet     String?
+  body        String
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  reservation Reservation?
+  @@index([receivedAt])
+}
+
+model Reservation {
+  id            String   @id @default(cuid())
+  emailId       String   @unique
+  customerName  String?
+  customerEmail String?
+  customerPhone String?
+  service       String?
+  dateTime      DateTime?
+  status        String
+  rawSubject    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  email EmailMessage @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  @@index([dateTime])
+  @@index([status])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  periodStart DateTime
+  periodEnd   DateTime
+  generatedAt DateTime @default(now())
+  subject     String
+  body        String
+  emailSentAt DateTime?
+  @@index([generatedAt])
+}
+
+model AppSetting {
+  key       String @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
