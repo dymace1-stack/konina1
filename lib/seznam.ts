@@ -48,22 +48,32 @@ export async function fetchRecentEmails(periodHours = 48) {
     try {
       const uids = await client.search({ since }, { uid: true });
 
-      for await (const message of client.fetch(uids, {
-        uid: true,
-        envelope: true,
-        internalDate: true,
-        source: true
-      })) {
+      if (uids.length === 0) return messages;
+
+      const fetched = await client.fetchAll(
+        uids,
+        {
+          uid: true,
+          envelope: true,
+          internalDate: true,
+          source: true
+        },
+        { uid: true }
+      );
+
+      for (const message of fetched) {
         if (!message.source) continue;
 
         const parsed = await simpleParser(message.source);
         const sender = parsed.from?.text || undefined;
         const subject = parsed.subject || undefined;
-        const body = parsed.text?.trim() || parsed.html?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "";
+        const body =
+          parsed.text?.trim() ||
+          parsed.html?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() ||
+          "";
 
         messages.push({
           id: parsed.messageId?.trim() || `seznam:${message.uid}`,
-          threadId: message.envelope?.messageId || undefined,
           receivedAt: message.internalDate ?? parsed.date ?? new Date(),
           sender,
           subject,
@@ -97,4 +107,6 @@ export async function sendEmail(to: string, subject: string, body: string) {
     subject,
     text: body
   });
+
+  transporter.close();
 }
