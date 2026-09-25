@@ -67,10 +67,10 @@ export async function fetchRecentEmails(periodHours = 48) {
         const parsed = await simpleParser(message.source);
         const sender = parsed.from?.text || undefined;
         const subject = parsed.subject || undefined;
-        const body =
-          parsed.text?.trim() ||
-          parsed.html?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() ||
-          "";
+        const htmlBody = typeof parsed.html === "string"
+          ? parsed.html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
+          : "";
+        const body = parsed.text?.trim() || htmlBody;
 
         messages.push({
           id: parsed.messageId?.trim() || `seznam:${message.uid}`,
@@ -101,12 +101,14 @@ export async function sendEmail(to: string, subject: string, body: string) {
     auth: { user, pass: password }
   });
 
-  await transporter.sendMail({
-    from: user,
-    to,
-    subject,
-    text: body
-  });
-
-  transporter.close();
+  try {
+    await transporter.sendMail({
+      from: user,
+      to,
+      subject,
+      text: body
+    });
+  } finally {
+    transporter.close();
+  }
 }
